@@ -226,3 +226,39 @@ SlashCmdList["EASYQUEST"] = function(msg)
 		print("|cff58C6FA/easyquest refresh|r - 刷新任务进度")
 	end
 end
+
+
+-- ============================================
+-- 在任务日志列表中显示任务等级前缀
+-- 格式：[等级] 任务名称
+-- ============================================
+local function EasyQuest_PrependLevelToTitles()
+	local numEntries = GetNumQuestLogEntries()
+	if not numEntries or numEntries <= 0 then return end
+
+	local maxShown = QUESTS_DISPLAYED or 20
+	for i = 1, maxShown do
+		local button = getglobal("QuestLogTitle" .. i)
+		if not button then break end
+
+		local _, level, _, _, isHeader = GetQuestLogTitle(i)
+		local buttonText = button:GetText()
+		if not isHeader and buttonText and buttonText ~= "" then
+			if level and level > 0 then
+				-- 防止重复前缀
+				local cleanText = string.gsub(buttonText, "^%[%d+%]%s*", "")
+				button:SetText("[" .. level .. "]" .. cleanText)
+			end
+		end
+	end
+end
+
+local EasyQuest_OrigQuestLogUpdate = QuestLog_Update
+if type(EasyQuest_OrigQuestLogUpdate) == "function" then
+	QuestLog_Update = function(...)
+		EasyQuest_OrigQuestLogUpdate(...)
+		EasyQuest_PrependLevelToTitles()
+	end
+end
+
+EasyQuest_PrependLevelToTitles()
