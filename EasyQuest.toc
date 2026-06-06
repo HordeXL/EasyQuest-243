@@ -1,0 +1,13 @@
+## Interface: 20400
+## Version: 0.1.0
+## Title: |cffEEE4AE EasyQuest |r
+## Notes: |cff58C6FA Make the quest log more comfortable! |r|n|n|cffFFC700 Slash command: /easyquest |r
+## Author: Tmissu
+## SavedVariables: EasyQuest_QuestLogFrame_Point
+
+
+## Title-zhCN: |cffEEE4AE 任务增强 |r
+## Notes-zhCN: |cff58C6FA 让任务做起来更加舒适！ |r|n|n|cffFFC700 启动命令: /easyquest |r
+
+
+QuestLogFrameOptimize.lua
