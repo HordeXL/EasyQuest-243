@@ -262,3 +262,82 @@ if type(EasyQuest_OrigQuestLogUpdate) == "function" then
 end
 
 EasyQuest_PrependLevelToTitles()
+
+
+-- ============================================
+-- 在右侧详情面板的任务名称旁显示任务 ID
+-- ============================================
+
+-- 获取任务真实数据库 ID
+-- 方法1：GetQuestLink 解析（TBC 原生可靠途径，pfQuest/LibQuixote 同方案）
+-- 方法2：GetQuestID（部分私服移植了此函数）
+-- 都不可用时返回 nil，不显示错误 ID
+local function EasyQuest_GetQuestID(questIndex)
+	local id = nil
+
+	-- 方法1：解析任务超链接（GetQuestLink 在 TBC 2.4.3 原生支持）
+	-- 链接格式：|Hquest:ID:...|h
+	local link = GetQuestLink(questIndex)
+	if link then
+		id = tonumber(string.match(link, "quest:(%d+)"))
+	end
+
+	-- 方法2：部分私服移植了 GetQuestID
+	if not id and GetQuestID then
+		local ok, result = pcall(GetQuestID, questIndex)
+		if ok and result then
+			id = result
+		end
+	end
+
+	return id
+end
+
+-- 后置钩子：选中任务后，在标题右侧追加任务 ID
+local EasyQuest_OrigSetSelection = QuestLog_SetSelection
+if type(EasyQuest_OrigSetSelection) == "function" then
+	QuestLog_SetSelection = function(questIndex)
+		EasyQuest_OrigSetSelection(questIndex)
+
+		-- 当前选中的任务索引
+		local idx = questIndex or GetQuestLogSelection()
+		if not idx or idx <= 0 then return end
+
+		-- 获取标题 FontString（兼容不同版本命名）
+		local titleText = QuestLogQuestTitle or QuestLogTitleText
+		if not titleText then return end
+
+		-- 获取真实任务 ID（无法获取时不显示）
+		local questID = EasyQuest_GetQuestID(idx)
+
+		local text = titleText:GetText() or ""
+		-- 去除已有 ID 后缀（防重复追加）
+		text = string.gsub(text, "%s*|cff%x%x%x%x%x%x%x%x%[ID:%d+%]|r$", "")
+		titleText:SetText(text)
+
+		-- 在标题下方用橙色显示任务 ID
+		local idLine = getglobal("EasyQuest_IDText")
+		if not idLine then
+			idLine = titleText:GetParent():CreateFontString("EasyQuest_IDText", "OVERLAY", "GameFontNormalSmall")
+			idLine:SetPoint("TOPLEFT", titleText, "BOTTOMLEFT", 0, -2)
+		end
+		-- 先隐藏，避免残留旧 ID
+		idLine:Hide()
+		-- 有有效 ID 时才显示
+		if questID and questID > 0 then
+			idLine:SetText("|cffff6600任务ID：" .. questID .. "|r")
+			idLine:Show()
+		end
+
+		-- 将任务目标文本锚定到 ID 行下方（有 ID 时）或标题下方（无 ID 时）
+		-- 保持原始偏移量不变，避免 ID 与目标描述文本重叠
+		if QuestLogObjectivesText then
+			local anchor = (questID and questID > 0) and idLine or titleText
+			local _, _, _, xOfs, yOfs = QuestLogObjectivesText:GetPoint()
+			if xOfs and yOfs then
+				QuestLogObjectivesText:ClearAllPoints()
+				QuestLogObjectivesText:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", xOfs, yOfs)
+			end
+		end
+	end
+end
